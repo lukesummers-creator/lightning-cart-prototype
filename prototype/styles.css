@@ -178,9 +178,55 @@ h1 {
 .item-card {
   overflow: hidden;
   position: relative;
+  touch-action: none;
+  user-select: none;
+}
+
+.swipe-hint, .decision-flash {
+  position: absolute;
+  z-index: 8;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border-radius: 16px;
+  padding: 10px 14px;
+  color: white;
+  opacity: 0.96;
+  box-shadow: var(--shadow-md);
+}
+
+.swipe-hint.hidden, .decision-flash.hidden {
+  display: none;
+}
+
+.swipe-hint {
+  top: 18px;
+  right: 18px;
+}
+
+.swipe-hint.keep, .decision-flash.keep { background: rgba(30, 143, 96, 0.95); }
+.swipe-hint.skip, .decision-flash.skip { background: rgba(191, 81, 71, 0.95); }
+.swipe-hint.maybe, .decision-flash.maybe { background: rgba(169, 107, 0, 0.95); }
+
+.swipe-hint.keep { left: 18px; right: auto; }
+.swipe-hint.skip { right: 18px; left: auto; }
+.swipe-hint.maybe { left: 50%; right: auto; transform: translateX(-50%); }
+
+.decision-flash {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  transition: transform 160ms ease, opacity 160ms ease;
+  font-size: 1.1rem;
+}
+
+.decision-flash.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .image-wrap {
+  position: relative;
   background:
     radial-gradient(circle at top right, rgba(93,109,255,0.09), transparent 30%),
     radial-gradient(circle at top left, rgba(116,214,178,0.12), transparent 30%),
@@ -190,6 +236,26 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.image-wrap::before {
+  content: "↔";
+  position: absolute;
+  bottom: 30px;
+  right: 18px;
+  font-size: 1.1rem;
+  color: rgba(68, 57, 48, 0.35);
+  font-weight: 900;
+}
+
+.image-wrap::after {
+  content: "Swipe me";
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-size: 0.78rem;
+  color: rgba(68, 57, 48, 0.55);
+  font-weight: 800;
 }
 
 .image-wrap img {
