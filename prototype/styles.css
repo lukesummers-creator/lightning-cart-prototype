@@ -136,6 +136,10 @@ h1 {
   font-weight: 700;
 }
 
+#screen-review {
+  position: relative;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -207,43 +211,48 @@ h1 {
   user-select: none;
 }
 
-.swipe-hint, .decision-flash {
+.swipe-hint {
   position: absolute;
-  z-index: 10;
+  z-index: 12;
   font-weight: 900;
   letter-spacing: 0.06em;
   border-radius: 16px;
   padding: 10px 14px;
   color: white;
   box-shadow: var(--shadow-md);
+  top: 18px;
+  opacity: 0.82;
 }
 
-.swipe-hint.hidden, .decision-flash.hidden {
+.swipe-hint.hidden,
+.decision-flash.hidden {
   display: none;
 }
 
-.swipe-hint {
-  top: 18px;
-  right: 18px;
-  opacity: 0.96;
+.swipe-hint.keep { left: 18px; background: rgba(30, 143, 96, 0.95); }
+.swipe-hint.skip { right: 18px; background: rgba(191, 81, 71, 0.95); }
+.swipe-hint.maybe {
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(169, 107, 0, 0.95);
 }
 
-.swipe-hint.keep, .decision-flash.keep { background: rgba(30, 143, 96, 0.95); }
-.swipe-hint.skip, .decision-flash.skip { background: rgba(191, 81, 71, 0.95); }
-.swipe-hint.maybe, .decision-flash.maybe { background: rgba(169, 107, 0, 0.95); }
-
-.swipe-hint.keep { left: 18px; right: auto; }
-.swipe-hint.skip { right: 18px; left: auto; }
-.swipe-hint.maybe { left: 50%; right: auto; transform: translateX(-50%); }
-
 .decision-flash {
-  top: 45%;
+  position: fixed;
+  top: 42%;
   left: 50%;
+  z-index: 40;
   transform: translate(-50%, -50%) scale(0.88);
   opacity: 0;
   transition: transform 190ms ease, opacity 190ms ease;
   font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
   pointer-events: none;
+  padding: 14px 18px;
+  border-radius: 18px;
+  color: white;
+  box-shadow: var(--shadow-md);
 }
 
 .decision-flash.show {
@@ -251,13 +260,17 @@ h1 {
   transform: translate(-50%, -50%) scale(1);
 }
 
+.decision-flash.keep { background: rgba(30, 143, 96, 0.95); }
+.decision-flash.skip { background: rgba(191, 81, 71, 0.95); }
+.decision-flash.maybe { background: rgba(169, 107, 0, 0.95); }
+
 .decision-flash::after {
   content: "";
   position: absolute;
-  inset: -10px;
-  border-radius: 22px;
+  inset: -12px;
+  border-radius: 24px;
   background: inherit;
-  filter: blur(16px);
+  filter: blur(20px);
   opacity: 0.22;
   z-index: -1;
 }
