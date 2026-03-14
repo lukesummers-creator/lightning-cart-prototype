@@ -67,8 +67,26 @@ function renderCard() {
   els.progressText.textContent = `${viewed} of ${items.length}`;
   els.progressPill.textContent = `${kept} kept`;
   els.progressBar.style.width = `${((viewed - 1) / items.length) * 100}%`;
+  pulseProgress(statusToPulseClass(decision.status));
   resetCardTransform();
   hideSwipeHint();
+}
+
+function statusToPulseClass(status) {
+  if (status === 'keep') return 'pulse-keep';
+  if (status === 'skip') return 'pulse-skip';
+  if (status === 'maybe') return 'pulse-maybe';
+  return '';
+}
+
+function pulseProgress(kind) {
+  if (!kind) return;
+  els.progressBar.classList.remove('pulse-keep', 'pulse-skip', 'pulse-maybe');
+  void els.progressBar.offsetWidth;
+  els.progressBar.classList.add(kind);
+  setTimeout(() => {
+    els.progressBar.classList.remove('pulse-keep', 'pulse-skip', 'pulse-maybe');
+  }, 550);
 }
 
 function formatQty(item, qty) {
@@ -102,8 +120,8 @@ function flashDecision(status) {
     els.decisionFlash.classList.remove('show');
     setTimeout(() => {
       els.decisionFlash.className = 'decision-flash hidden';
-    }, 180);
-  }, 620);
+    }, 220);
+  }, 520);
 }
 
 function showSwipeHint(status) {
@@ -123,28 +141,29 @@ function hideSwipeHint() {
 
 function animateAdvance(status, callback) {
   const map = {
-    keep: 'translate3d(120%, -4%, 0) rotate(14deg)',
-    skip: 'translate3d(-120%, -4%, 0) rotate(-14deg)',
-    maybe: 'translate3d(0, -120%, 0) rotate(0deg)'
+    keep: 'translate3d(120%, -2%, 0) rotate(10deg)',
+    skip: 'translate3d(-120%, -2%, 0) rotate(-10deg)',
+    maybe: 'translate3d(0, -108%, 0) rotate(0deg)'
   };
   flashDecision(status);
+  pulseProgress(statusToPulseClass(status));
   els.itemCard.style.transition = 'transform 220ms ease, opacity 220ms ease';
   els.itemCard.style.transform = map[status] || 'scale(0.98)';
-  els.itemCard.style.opacity = '0.15';
+  els.itemCard.style.opacity = '0.12';
   hideSwipeHint();
   setTimeout(() => {
     callback();
     els.itemCard.style.transition = 'none';
-    els.itemCard.style.transform = 'translateY(18px) scale(0.98)';
+    els.itemCard.style.transform = 'translateY(14px) scale(0.985)';
     els.itemCard.style.opacity = '0';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        els.itemCard.style.transition = 'transform 180ms ease, opacity 180ms ease';
+        els.itemCard.style.transition = 'transform 170ms ease, opacity 170ms ease';
         els.itemCard.style.transform = 'translateY(0) scale(1)';
         els.itemCard.style.opacity = '1';
       });
     });
-  }, 225);
+  }, 235);
 }
 
 function advance(status) {
@@ -220,10 +239,20 @@ function restart() {
 }
 
 function dragDecision(dx, dy) {
-  if (Math.abs(dy) > 80 && dy < 0 && Math.abs(dy) > Math.abs(dx)) return 'maybe';
-  if (dx > 80) return 'keep';
-  if (dx < -80) return 'skip';
+  if (dy < -92 && Math.abs(dy) > Math.abs(dx) * 1.25) return 'maybe';
+  if (dx > 88) return 'keep';
+  if (dx < -88) return 'skip';
   return null;
+}
+
+function applyDragTransform(dx, dy) {
+  const limitedX = Math.max(-140, Math.min(140, dx));
+  const absX = Math.abs(limitedX);
+  const curveY = Math.min(22, absX * 0.06);
+  const xDirection = limitedX >= 0 ? 1 : -1;
+  const lockedY = dy < 0 ? Math.max(dy * 0.45, -95) : curveY;
+  const rot = limitedX * 0.045;
+  els.itemCard.style.transform = `translate3d(${limitedX}px, ${lockedY}px, 0) rotate(${rot}deg)`;
 }
 
 function onPointerDown(e) {
@@ -238,8 +267,7 @@ function onPointerMove(e) {
   if (!dragState.active || !pointerStart) return;
   dragState.dx = e.clientX - pointerStart.x;
   dragState.dy = e.clientY - pointerStart.y;
-  const rot = dragState.dx * 0.04;
-  els.itemCard.style.transform = `translate3d(${dragState.dx}px, ${dragState.dy}px, 0) rotate(${rot}deg)`;
+  applyDragTransform(dragState.dx, dragState.dy);
   const decision = dragDecision(dragState.dx, dragState.dy);
   if (decision) showSwipeHint(decision); else hideSwipeHint();
 }
