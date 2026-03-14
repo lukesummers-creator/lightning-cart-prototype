@@ -1,6 +1,8 @@
 let items = [];
 let currentIndex = 0;
 const decisions = {};
+let pointerStart = null;
+let dragState = { dx: 0, dy: 0, active: false };
 
 const screens = {
   landing: document.getElementById('screen-landing'),
@@ -20,6 +22,8 @@ const els = {
   itemQty: document.getElementById('item-qty'),
   productLink: document.getElementById('product-link'),
   itemCard: document.getElementById('item-card'),
+  swipeHint: document.getElementById('swipe-hint'),
+  decisionFlash: document.getElementById('decision-flash'),
   subsModal: document.getElementById('subs-modal'),
   subsList: document.getElementById('subs-list'),
   modalItemName: document.getElementById('modal-item-name'),
@@ -63,8 +67,8 @@ function renderCard() {
   els.progressText.textContent = `${viewed} of ${items.length}`;
   els.progressPill.textContent = `${kept} kept`;
   els.progressBar.style.width = `${((viewed - 1) / items.length) * 100}%`;
-  els.itemCard.style.transform = 'scale(1)';
-  els.itemCard.style.opacity = '1';
+  resetCardTransform();
+  hideSwipeHint();
 }
 
 function formatQty(item, qty) {
@@ -76,28 +80,71 @@ function formatQty(item, qty) {
   return qty === 1 ? item.qtyLabel : `${qty} × ${item.qtyLabel}`;
 }
 
-function animateAdvance(direction, callback) {
+function resetCardTransform() {
+  els.itemCard.style.transition = 'transform 180ms ease, opacity 180ms ease';
+  els.itemCard.style.transform = 'translate3d(0,0,0) rotate(0deg)';
+  els.itemCard.style.opacity = '1';
+}
+
+function flashDecision(status) {
   const map = {
-    keep: 'translateX(24px) rotate(1deg)',
-    skip: 'translateX(-24px) rotate(-1deg)',
-    maybe: 'translateY(10px) scale(0.98)'
+    keep: { text: '✓ Added', cls: 'keep' },
+    skip: { text: '✕ Removed', cls: 'skip' },
+    maybe: { text: '? Maybe', cls: 'maybe' }
   };
-  els.itemCard.style.transition = 'transform 140ms ease, opacity 140ms ease';
-  els.itemCard.style.transform = map[direction] || 'scale(0.98)';
-  els.itemCard.style.opacity = '0.35';
+  const cfg = map[status];
+  els.decisionFlash.textContent = cfg.text;
+  els.decisionFlash.className = `decision-flash ${cfg.cls}`;
+  requestAnimationFrame(() => {
+    els.decisionFlash.classList.add('show');
+  });
+  setTimeout(() => {
+    els.decisionFlash.classList.remove('show');
+    setTimeout(() => {
+      els.decisionFlash.className = 'decision-flash hidden';
+    }, 180);
+  }, 620);
+}
+
+function showSwipeHint(status) {
+  const map = {
+    keep: { text: 'KEEP', cls: 'keep' },
+    skip: { text: 'SKIP', cls: 'skip' },
+    maybe: { text: 'MAYBE', cls: 'maybe' }
+  };
+  const cfg = map[status];
+  els.swipeHint.textContent = cfg.text;
+  els.swipeHint.className = `swipe-hint ${cfg.cls}`;
+}
+
+function hideSwipeHint() {
+  els.swipeHint.className = 'swipe-hint hidden';
+}
+
+function animateAdvance(status, callback) {
+  const map = {
+    keep: 'translate3d(120%, -4%, 0) rotate(14deg)',
+    skip: 'translate3d(-120%, -4%, 0) rotate(-14deg)',
+    maybe: 'translate3d(0, -120%, 0) rotate(0deg)'
+  };
+  flashDecision(status);
+  els.itemCard.style.transition = 'transform 220ms ease, opacity 220ms ease';
+  els.itemCard.style.transform = map[status] || 'scale(0.98)';
+  els.itemCard.style.opacity = '0.15';
+  hideSwipeHint();
   setTimeout(() => {
     callback();
     els.itemCard.style.transition = 'none';
+    els.itemCard.style.transform = 'translateY(18px) scale(0.98)';
+    els.itemCard.style.opacity = '0';
     requestAnimationFrame(() => {
-      els.itemCard.style.transform = 'translateY(8px)';
-      els.itemCard.style.opacity = '0';
       requestAnimationFrame(() => {
-        els.itemCard.style.transition = 'transform 160ms ease, opacity 160ms ease';
-        els.itemCard.style.transform = 'translateY(0)';
+        els.itemCard.style.transition = 'transform 180ms ease, opacity 180ms ease';
+        els.itemCard.style.transform = 'translateY(0) scale(1)';
         els.itemCard.style.opacity = '1';
       });
     });
-  }, 145);
+  }, 225);
 }
 
 function advance(status) {
@@ -172,6 +219,44 @@ function restart() {
   showScreen('landing');
 }
 
+function dragDecision(dx, dy) {
+  if (Math.abs(dy) > 80 && dy < 0 && Math.abs(dy) > Math.abs(dx)) return 'maybe';
+  if (dx > 80) return 'keep';
+  if (dx < -80) return 'skip';
+  return null;
+}
+
+function onPointerDown(e) {
+  if (screens.review.classList.contains('active') === false) return;
+  if (e.target.closest('.action-grid, .qty-controls, .secondary-actions, .modal, button, a')) return;
+  pointerStart = { x: e.clientX, y: e.clientY };
+  dragState = { dx: 0, dy: 0, active: true };
+  els.itemCard.style.transition = 'none';
+}
+
+function onPointerMove(e) {
+  if (!dragState.active || !pointerStart) return;
+  dragState.dx = e.clientX - pointerStart.x;
+  dragState.dy = e.clientY - pointerStart.y;
+  const rot = dragState.dx * 0.04;
+  els.itemCard.style.transform = `translate3d(${dragState.dx}px, ${dragState.dy}px, 0) rotate(${rot}deg)`;
+  const decision = dragDecision(dragState.dx, dragState.dy);
+  if (decision) showSwipeHint(decision); else hideSwipeHint();
+}
+
+function onPointerEnd() {
+  if (!dragState.active) return;
+  const decision = dragDecision(dragState.dx, dragState.dy);
+  dragState.active = false;
+  pointerStart = null;
+  if (decision) {
+    advance(decision);
+  } else {
+    hideSwipeHint();
+    resetCardTransform();
+  }
+}
+
 document.getElementById('start-review').addEventListener('click', () => {
   currentIndex = 0;
   renderCard();
@@ -189,6 +274,11 @@ document.getElementById('restart-btn').addEventListener('click', restart);
 document.getElementById('subs-modal').addEventListener('click', (e) => {
   if (e.target.id === 'subs-modal') closeSubs();
 });
+
+els.itemCard.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerEnd);
+window.addEventListener('pointercancel', onPointerEnd);
 
 fetch('items.json')
   .then(r => r.json())
